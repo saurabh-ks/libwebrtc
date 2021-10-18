@@ -12,7 +12,6 @@ package org.webrtc;
 
 import android.media.MediaRecorder;
 
-
 /**
  * Base interface for camera1 and camera2 implementations. Extends VideoCapturer with a
  * switchCamera() function. Also provides subinterfaces for handling camera events, and a helper
@@ -63,6 +62,11 @@ public interface CameraVideoCapturer extends VideoCapturer {
   void switchCamera(CameraSwitchHandler switchEventsHandler);
 
   void setZoom(float zoomValue) throws Camera2Capturer.CameraException;
+  /**
+   * Switch camera to the specified camera id. This can only be called while the camera is running.
+   * This function can be called from any thread.
+   */
+  void switchCamera(CameraSwitchHandler switchEventsHandler, String cameraName);
 
   /**
    * MediaRecorder add/remove handler - one of these functions are invoked with the result of

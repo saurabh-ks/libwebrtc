@@ -9,7 +9,6 @@
  */
 
 package org.webrtc;
-
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
@@ -21,16 +20,14 @@ import java.util.List;
 @TargetApi(21)
 public class Camera2Capturer extends CameraCapturer {
   private final Context context;
-    private final CameraManager cameraManager;
-  private static final String TAG = "Camera2Capturer";
+  private final CameraManager cameraManager;
 
   public Camera2Capturer(Context context, String cameraName, CameraEventsHandler eventsHandler) {
     super(cameraName, eventsHandler, new Camera2Enumerator(context));
 
     this.context = context;
     cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-
-    }
+  }
 
   @Override
   protected void createCameraSession(CameraSession.CreateSessionCallback createSessionCallback,
@@ -40,6 +37,8 @@ public class Camera2Capturer extends CameraCapturer {
     Camera2Session.create(createSessionCallback, events, applicationContext, cameraManager,
         surfaceTextureHelper, cameraName, width, height, framerate);
   }
+
+
 
   /**
    +   * Returns true if zoom is supported. Applications should call this
@@ -73,8 +72,7 @@ public class Camera2Capturer extends CameraCapturer {
   }
 
   /**
-   +   * Gets the maximum zoom value allowed for snapshot. This is the maximum
-   +   * value that applications can set to {@link #setZoom(int)}.
+   +   * Gets the maximum zoom value allowed for snapshot.
    +   * Applications should call {@link #isZoomSupported} before using this
    +   * method. This value may change in different preview size. Applications
    +   * should call this again after setting preview size.
@@ -93,8 +91,7 @@ public class Camera2Capturer extends CameraCapturer {
 
 
   /**
-   +   * Gets the maximum zoom value allowed for snapshot. This is the maximum
-   +   * value that applications can set to {@link #setZoom(int)}.
+   +   * Gets the maximum zoom value allowed for snapshot.
    +   * Applications should call {@link #isZoomSupported} before using this
    +   * method. This value may change in different preview size. Applications
    +   * should call this again after setting preview size.

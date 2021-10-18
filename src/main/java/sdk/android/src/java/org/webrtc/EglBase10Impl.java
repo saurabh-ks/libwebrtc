@@ -13,7 +13,7 @@ package org.webrtc;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
-
+import androidx.annotation.Nullable;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import javax.microedition.khronos.egl.EGL10;
@@ -27,18 +27,21 @@ import javax.microedition.khronos.egl.EGLSurface;
  * and an EGLSurface.
  */
 class EglBase10Impl implements EglBase10 {
+  private static final String TAG = "EglBase10Impl";
   // This constant is taken from EGL14.EGL_CONTEXT_CLIENT_VERSION.
   private static final int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
 
   private final EGL10 egl;
   private EGLContext eglContext;
-    private EGLConfig eglConfig;
+  @Nullable private EGLConfig eglConfig;
   private EGLDisplay eglDisplay;
   private EGLSurface eglSurface = EGL10.EGL_NO_SURFACE;
 
   // EGL wrapper for an actual EGLContext.
   private static class Context implements EglBase10.Context {
+    private final EGL10 egl;
     private final EGLContext eglContext;
+    private final EGLConfig eglContextConfig;
 
     @Override
     public EGLContext getRawContext() {
@@ -47,15 +50,41 @@ class EglBase10Impl implements EglBase10 {
 
     @Override
     public long getNativeEglContext() {
-      // TODO(magjed): Implement. There is no easy way of getting the native context for EGL 1.0. We
-      // need to make sure to have an EglSurface, then make the context current using that surface,
-      // and then call into JNI and call the native version of eglGetCurrentContext. Then we need to
-      // restore the state and return the native context.
-      return 0 /* EGL_NO_CONTEXT */;
+      EGLContext previousContext = egl.eglGetCurrentContext();
+      EGLDisplay currentDisplay = egl.eglGetCurrentDisplay();
+      EGLSurface previousDrawSurface = egl.eglGetCurrentSurface(EGL10.EGL_DRAW);
+      EGLSurface previousReadSurface = egl.eglGetCurrentSurface(EGL10.EGL_READ);
+      EGLSurface tempEglSurface = null;
+
+      if (currentDisplay == EGL10.EGL_NO_DISPLAY) {
+        currentDisplay = egl.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
+      }
+
+      try {
+        if (previousContext != eglContext) {
+          int[] surfaceAttribs = {EGL10.EGL_WIDTH, 1, EGL10.EGL_HEIGHT, 1, EGL10.EGL_NONE};
+          tempEglSurface =
+              egl.eglCreatePbufferSurface(currentDisplay, eglContextConfig, surfaceAttribs);
+          if (!egl.eglMakeCurrent(currentDisplay, tempEglSurface, tempEglSurface, eglContext)) {
+            throw new RuntimeException(
+                "Failed to make temporary EGL surface active: " + egl.eglGetError());
+          }
+        }
+
+        return nativeGetCurrentNativeEGLContext();
+      } finally {
+        if (tempEglSurface != null) {
+          egl.eglMakeCurrent(
+              currentDisplay, previousDrawSurface, previousReadSurface, previousContext);
+          egl.eglDestroySurface(currentDisplay, tempEglSurface);
+        }
+      }
     }
 
-    public Context(EGLContext eglContext) {
+    public Context(EGL10 egl, EGLContext eglContext, EGLConfig eglContextConfig) {
+      this.egl = egl;
       this.eglContext = eglContext;
+      this.eglContextConfig = eglContextConfig;
     }
   }
 
@@ -63,8 +92,10 @@ class EglBase10Impl implements EglBase10 {
   public EglBase10Impl(EGLContext sharedContext, int[] configAttributes) {
     this.egl = (EGL10) EGLContext.getEGL();
     eglDisplay = getEglDisplay();
-    eglConfig = getEglConfig(eglDisplay, configAttributes);
-    eglContext = createEglContext(sharedContext, eglDisplay, eglConfig);
+    eglConfig = getEglConfig(egl, eglDisplay, configAttributes);
+    final int openGlesVersion = EglBase.getOpenGlesVersionFromConfig(configAttributes);
+    Logging.d(TAG, "Using OpenGL ES version " + openGlesVersion);
+    eglContext = createEglContext(sharedContext, eglDisplay, eglConfig, openGlesVersion);
   }
 
   @Override
@@ -108,13 +139,13 @@ class EglBase10Impl implements EglBase10 {
       @Override
       public void setKeepScreenOn(boolean b) {}
 
-
+      @Nullable
       @Override
       public Canvas lockCanvas() {
         return null;
       }
 
-
+      @Nullable
       @Override
       public Canvas lockCanvas(Rect rect) {
         return null;
@@ -123,7 +154,7 @@ class EglBase10Impl implements EglBase10 {
       @Override
       public void unlockCanvasAndPost(Canvas canvas) {}
 
-
+      @Nullable
       @Override
       public Rect getSurfaceFrame() {
         return null;
@@ -183,7 +214,7 @@ class EglBase10Impl implements EglBase10 {
 
   @Override
   public org.webrtc.EglBase.Context getEglBaseContext() {
-    return new Context(eglContext);
+    return new Context(egl, eglContext, eglConfig);
   }
 
   @Override
@@ -291,7 +322,7 @@ class EglBase10Impl implements EglBase10 {
   }
 
   // Return an EGLConfig, or die trying.
-  private EGLConfig getEglConfig(EGLDisplay eglDisplay, int[] configAttributes) {
+  private static EGLConfig getEglConfig(EGL10 egl, EGLDisplay eglDisplay, int[] configAttributes) {
     EGLConfig[] configs = new EGLConfig[1];
     int[] numConfigs = new int[1];
     if (!egl.eglChooseConfig(eglDisplay, configAttributes, configs, configs.length, numConfigs)) {
@@ -309,12 +340,12 @@ class EglBase10Impl implements EglBase10 {
   }
 
   // Return an EGLConfig, or die trying.
-  private EGLContext createEglContext(
-        EGLContext sharedContext, EGLDisplay eglDisplay, EGLConfig eglConfig) {
+  private EGLContext createEglContext(@Nullable EGLContext sharedContext, EGLDisplay eglDisplay,
+      EGLConfig eglConfig, int openGlesVersion) {
     if (sharedContext != null && sharedContext == EGL10.EGL_NO_CONTEXT) {
       throw new RuntimeException("Invalid sharedContext");
     }
-    int[] contextAttributes = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL10.EGL_NONE};
+    int[] contextAttributes = {EGL_CONTEXT_CLIENT_VERSION, openGlesVersion, EGL10.EGL_NONE};
     EGLContext rootContext = sharedContext == null ? EGL10.EGL_NO_CONTEXT : sharedContext;
     final EGLContext eglContext;
     synchronized (EglBase.lock) {
@@ -326,4 +357,6 @@ class EglBase10Impl implements EglBase10 {
     }
     return eglContext;
   }
+
+  private static native long nativeGetCurrentNativeEGLContext();
 }

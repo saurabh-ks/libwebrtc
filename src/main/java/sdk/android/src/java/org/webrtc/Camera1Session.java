@@ -14,11 +14,11 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.hardware.Camera;
-import org.webrtc.CameraEnumerationAndroid.CaptureFormat;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.webrtc.CameraEnumerationAndroid.CaptureFormat;
 
 @SuppressWarnings("deprecation")
 class Camera1Session implements CameraSession {
@@ -231,25 +231,23 @@ class Camera1Session implements CameraSession {
     return camera.getParameters().isZoomSupported();
   }
 
-    void setZoom(int value){
-        Camera.Parameters parameters = camera.getParameters();
-        parameters.setZoom(value);
-        camera.setParameters(parameters);
-      }
+  void setZoom(int value){
+    Camera.Parameters parameters = camera.getParameters();
+    parameters.setZoom(value);
+    camera.setParameters(parameters);
+  }
 
-      int getZoom(){
-        return camera.getParameters().getZoom();
-      }
+  int getZoom(){
+    return camera.getParameters().getZoom();
+  }
 
-      int getMaxZoom(){
-        return camera.getParameters().getMaxZoom();
-      }
+  int getMaxZoom(){
+    return camera.getParameters().getMaxZoom();
+  }
 
-      List<Integer> getZoomRatios(){
-        return camera.getParameters().getZoomRatios();
-      }
-
-
+  List<Integer> getZoomRatios(){
+    return camera.getParameters().getZoomRatios();
+  }
 
   private void stopInternal() {
     Logging.d(TAG, "Stop internal");

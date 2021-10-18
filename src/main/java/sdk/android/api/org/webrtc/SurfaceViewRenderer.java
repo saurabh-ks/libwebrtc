@@ -31,7 +31,7 @@ public class SurfaceViewRenderer extends SurfaceView
       new RendererCommon.VideoLayoutMeasure();
   private final SurfaceEglRenderer eglRenderer;
 
-  // Callback for reporting renderer events. Read-only after initilization so no lock required.
+  // Callback for reporting renderer events. Read-only after initialization so no lock required.
   private RendererCommon.RendererEvents rendererEvents;
 
   // Accessed only on the main thread.
@@ -295,6 +295,6 @@ public class SurfaceViewRenderer extends SurfaceView
   }
 
   private void logD(String string) {
-    Logging.d(TAG,  resourceName + ": " + string);
+    Logging.d(TAG, resourceName + ": " + string);
   }
 }

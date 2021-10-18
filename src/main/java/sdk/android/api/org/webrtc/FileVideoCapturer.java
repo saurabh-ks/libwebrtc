@@ -191,7 +191,7 @@ public class FileVideoCapturer implements VideoCapturer {
 
   @Override
   public void setZoom(float zoomValue) throws Camera2Capturer.CameraException {
-
+// Empty on purpose
   }
 
   @Override

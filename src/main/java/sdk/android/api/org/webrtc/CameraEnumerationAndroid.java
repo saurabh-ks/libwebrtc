@@ -47,10 +47,6 @@ public class CameraEnumerationAndroid {
       new Size(3840, 2160) // 20, UHD
       ));
 
-  public static class ZoomVideo {
-
-  }
-
   public static class CaptureFormat {
     // Class to represent a framerate range. The framerate varies because of lightning conditions.
     // The values are multiplied by 1000, so 1000 represents one frame per second.

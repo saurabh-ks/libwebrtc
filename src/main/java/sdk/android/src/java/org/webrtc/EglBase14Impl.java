@@ -19,7 +19,9 @@ import android.opengl.EGLDisplay;
 import android.opengl.EGLExt;
 import android.opengl.EGLSurface;
 import android.os.Build;
+import androidx.annotation.Nullable;
 import android.view.Surface;
+import org.webrtc.EglBase;
 
 /**
  * Holds EGL state and utility methods for handling an EGL14 EGLContext, an EGLDisplay,
@@ -28,11 +30,11 @@ import android.view.Surface;
 @SuppressWarnings("ReferenceEquality") // We want to compare to EGL14 constants.
 @TargetApi(18)
 class EglBase14Impl implements EglBase14 {
-  private static final String TAG = "EglBase14";
+  private static final String TAG = "EglBase14Impl";
   private static final int EGLExt_SDK_VERSION = Build.VERSION_CODES.JELLY_BEAN_MR2;
   private static final int CURRENT_SDK_VERSION = Build.VERSION.SDK_INT;
   private EGLContext eglContext;
-    private EGLConfig eglConfig;
+  @Nullable private EGLConfig eglConfig;
   private EGLDisplay eglDisplay;
   private EGLSurface eglSurface = EGL14.EGL_NO_SURFACE;
 
@@ -71,7 +73,9 @@ class EglBase14Impl implements EglBase14 {
   public EglBase14Impl(EGLContext sharedContext, int[] configAttributes) {
     eglDisplay = getEglDisplay();
     eglConfig = getEglConfig(eglDisplay, configAttributes);
-    eglContext = createEglContext(sharedContext, eglDisplay, eglConfig);
+    final int openGlesVersion = EglBase.getOpenGlesVersionFromConfig(configAttributes);
+    Logging.d(TAG, "Using OpenGL ES version " + openGlesVersion);
+    eglContext = createEglContext(sharedContext, eglDisplay, eglConfig, openGlesVersion);
   }
 
   // Create EGLSurface from the Android Surface.
@@ -166,7 +170,9 @@ class EglBase14Impl implements EglBase14 {
     checkIsNotReleased();
     releaseSurface();
     detachCurrent();
-    EGL14.eglDestroyContext(eglDisplay, eglContext);
+    synchronized (EglBase.lock) {
+      EGL14.eglDestroyContext(eglDisplay, eglContext);
+    }
     EGL14.eglReleaseThread();
     EGL14.eglTerminate(eglDisplay);
     eglContext = EGL14.EGL_NO_CONTEXT;
@@ -260,12 +266,12 @@ class EglBase14Impl implements EglBase14 {
   }
 
   // Return an EGLConfig, or die trying.
-  private static EGLContext createEglContext(
-        EGLContext sharedContext, EGLDisplay eglDisplay, EGLConfig eglConfig) {
+  private static EGLContext createEglContext(@Nullable EGLContext sharedContext,
+      EGLDisplay eglDisplay, EGLConfig eglConfig, int openGlesVersion) {
     if (sharedContext != null && sharedContext == EGL14.EGL_NO_CONTEXT) {
       throw new RuntimeException("Invalid sharedContext");
     }
-    int[] contextAttributes = {EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE};
+    int[] contextAttributes = {EGL14.EGL_CONTEXT_CLIENT_VERSION, openGlesVersion, EGL14.EGL_NONE};
     EGLContext rootContext = sharedContext == null ? EGL14.EGL_NO_CONTEXT : sharedContext;
     final EGLContext eglContext;
     synchronized (EglBase.lock) {

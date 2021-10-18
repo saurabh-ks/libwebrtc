@@ -42,6 +42,7 @@ public interface VideoCapturer {
   void changeCaptureFormat(int width, int height, int framerate);
 
   void setZoom(float zoomValue) throws Camera2Capturer.CameraException;
+
   /**
    * Perform any final cleanup here. No more capturing will be done after this call.
    */

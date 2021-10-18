@@ -18,7 +18,7 @@ import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-
+import androidx.annotation.Nullable;
 import android.view.Surface;
 
 /**
@@ -46,13 +46,13 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
 
   private int width;
   private int height;
-    private VirtualDisplay virtualDisplay;
-    private SurfaceTextureHelper surfaceTextureHelper;
-    private CapturerObserver capturerObserver;
+  @Nullable private VirtualDisplay virtualDisplay;
+  @Nullable private SurfaceTextureHelper surfaceTextureHelper;
+  @Nullable private CapturerObserver capturerObserver;
   private long numCapturedFrames;
-    private MediaProjection mediaProjection;
+  @Nullable private MediaProjection mediaProjection;
   private boolean isDisposed;
-    private MediaProjectionManager mediaProjectionManager;
+  @Nullable private MediaProjectionManager mediaProjectionManager;
 
   /**
    * Constructs a new Screen Capturer.
@@ -73,6 +73,11 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
     if (isDisposed) {
       throw new RuntimeException("capturer is disposed.");
     }
+  }
+
+  @Nullable
+  public MediaProjection getMediaProjection() {
+    return mediaProjection;
   }
 
   @Override
@@ -115,6 +120,11 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
     createVirtualDisplay();
     capturerObserver.onCapturerStarted(true);
     surfaceTextureHelper.startListening(ScreenCapturerAndroid.this);
+  }
+
+  @Override
+  public void setZoom(float zoomValue) {
+
   }
 
   @Override
@@ -184,11 +194,6 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
         createVirtualDisplay();
       }
     });
-  }
-
-  @Override
-  public void setZoom(float zoomValue) {
-
   }
 
   private void createVirtualDisplay() {

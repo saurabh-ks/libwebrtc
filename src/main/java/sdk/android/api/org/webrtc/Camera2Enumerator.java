@@ -20,16 +20,14 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Build;
 import android.os.SystemClock;
+import androidx.annotation.Nullable;
 import android.util.AndroidException;
-import android.util.Log;
 import android.util.Range;
-
-import org.webrtc.CameraEnumerationAndroid.CaptureFormat;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.webrtc.CameraEnumerationAndroid.CaptureFormat;
 
 @TargetApi(21)
 public class Camera2Enumerator implements CameraEnumerator {
@@ -42,7 +40,7 @@ public class Camera2Enumerator implements CameraEnumerator {
       new HashMap<String, List<CaptureFormat>>();
 
   final Context context;
-    final CameraManager cameraManager;
+  @Nullable final CameraManager cameraManager;
 
   public Camera2Enumerator(Context context) {
     this.context = context;
@@ -57,7 +55,7 @@ public class Camera2Enumerator implements CameraEnumerator {
       // catch statement with an Exception from a newer API, even if the code is never executed.
       // https://code.google.com/p/android/issues/detail?id=209129
     } catch (/* CameraAccessException */ AndroidException e) {
-      Logging.e(TAG, "Camera access exception: " + e);
+      Logging.e(TAG, "Camera access exception", e);
       return new String[] {};
     }
   }
@@ -65,7 +63,6 @@ public class Camera2Enumerator implements CameraEnumerator {
   @Override
   public boolean isFrontFacing(String deviceName) {
     CameraCharacteristics characteristics = getCameraCharacteristics(deviceName);
-//    cameraManager.set
 
     return characteristics != null
         && characteristics.get(CameraCharacteristics.LENS_FACING)
@@ -81,6 +78,7 @@ public class Camera2Enumerator implements CameraEnumerator {
         == CameraMetadata.LENS_FACING_BACK;
   }
 
+  @Nullable
   @Override
   public List<CaptureFormat> getSupportedFormats(String deviceName) {
     return getSupportedFormats(context, deviceName);
@@ -92,15 +90,14 @@ public class Camera2Enumerator implements CameraEnumerator {
     return new Camera2Capturer(context, deviceName, eventsHandler);
   }
 
-  private CameraCharacteristics getCameraCharacteristics(String deviceName) {
+  private @Nullable CameraCharacteristics getCameraCharacteristics(String deviceName) {
     try {
-      Log.d("+++","+_+_+_+_+");
       return cameraManager.getCameraCharacteristics(deviceName);
       // On Android OS pre 4.4.2, a class will not load because of VerifyError if it contains a
       // catch statement with an Exception from a newer API, even if the code is never executed.
       // https://code.google.com/p/android/issues/detail?id=209129
     } catch (/* CameraAccessException */ AndroidException e) {
-      Logging.e(TAG, "Camera access exception: " + e);
+      Logging.e(TAG, "Camera access exception", e);
       return null;
     }
   }
@@ -123,8 +120,11 @@ public class Camera2Enumerator implements CameraEnumerator {
           return false;
         }
       }
-    } catch (AndroidException e) {
-      Logging.e(TAG, "Camera access exception: " + e);
+      // On Android OS pre 4.4.2, a class will not load because of VerifyError if it contains a
+      // catch statement with an Exception from a newer API, even if the code is never executed.
+      // https://code.google.com/p/android/issues/detail?id=209129
+    } catch (/* CameraAccessException */ AndroidException | RuntimeException e) {
+      Logging.e(TAG, "Failed to check if camera2 is supported", e);
       return false;
     }
     return true;
@@ -166,11 +166,13 @@ public class Camera2Enumerator implements CameraEnumerator {
     }
   }
 
+  @Nullable
   static List<CaptureFormat> getSupportedFormats(Context context, String cameraId) {
     return getSupportedFormats(
         (CameraManager) context.getSystemService(Context.CAMERA_SERVICE), cameraId);
   }
 
+  @Nullable
   static List<CaptureFormat> getSupportedFormats(CameraManager cameraManager, String cameraId) {
     synchronized (cachedSupportedFormats) {
       if (cachedSupportedFormats.containsKey(cameraId)) {
@@ -184,7 +186,7 @@ public class Camera2Enumerator implements CameraEnumerator {
       try {
         cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId);
       } catch (Exception ex) {
-        Logging.e(TAG, "getCameraCharacteristics(): " + ex);
+        Logging.e(TAG, "getCameraCharacteristics()", ex);
         return new ArrayList<CaptureFormat>();
       }
 

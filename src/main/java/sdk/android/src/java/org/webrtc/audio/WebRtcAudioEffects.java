@@ -15,10 +15,9 @@ import android.media.audiofx.AudioEffect;
 import android.media.audiofx.AudioEffect.Descriptor;
 import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
-
-import org.webrtc.Logging;
-
+import androidx.annotation.Nullable;
 import java.util.UUID;
+import org.webrtc.Logging;
 
 // This class wraps control of three different platform effects. Supported
 // effects are: AcousticEchoCanceler (AEC) and NoiseSuppressor (NS).
@@ -39,12 +38,12 @@ class WebRtcAudioEffects {
   // Contains the available effect descriptors returned from the
   // AudioEffect.getEffects() call. This result is cached to avoid doing the
   // slow OS call multiple times.
-  private static   Descriptor[] cachedEffects;
+  private static @Nullable Descriptor[] cachedEffects;
 
   // Contains the audio effect objects. Created in enable() and destroyed
   // in release().
-  private   AcousticEchoCanceler aec;
-  private   NoiseSuppressor ns;
+  private @Nullable AcousticEchoCanceler aec;
+  private @Nullable NoiseSuppressor ns;
 
   // Affects the final state given to the setEnabled() method on each effect.
   // The default state is set to "disabled" but each effect can also be enabled
@@ -205,7 +204,7 @@ class WebRtcAudioEffects {
 
   // Returns the cached copy of the audio effects array, if available, or
   // queries the operating system for the list of effects.
-  private static   Descriptor[] getAvailableEffects() {
+  private static @Nullable Descriptor[] getAvailableEffects() {
     if (cachedEffects != null) {
       return cachedEffects;
     }
@@ -220,14 +219,14 @@ class WebRtcAudioEffects {
   // Returns true if an effect of the specified type is available. Functionally
   // equivalent to (NoiseSuppressor|AutomaticGainControl|...).isAvailable(), but
   // faster as it avoids the expensive OS call to enumerate effects.
-  private static boolean isEffectTypeAvailable(UUID effectType, UUID blackListedUuid) {
+  private static boolean isEffectTypeAvailable(UUID effectType, UUID blockListedUuid) {
     Descriptor[] effects = getAvailableEffects();
     if (effects == null) {
       return false;
     }
     for (Descriptor d : effects) {
       if (d.type.equals(effectType)) {
-        return !d.uuid.equals(blackListedUuid);
+        return !d.uuid.equals(blockListedUuid);
       }
     }
     return false;

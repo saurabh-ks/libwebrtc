@@ -15,11 +15,8 @@ import android.graphics.Matrix;
 import android.view.WindowManager;
 import android.view.Surface;
 
-import java.util.List;
-
 interface CameraSession {
-
-    enum FailureType { ERROR, DISCONNECTED }
+  enum FailureType { ERROR, DISCONNECTED }
 
   // Callbacks are fired on the camera thread.
   interface CreateSessionCallback {
